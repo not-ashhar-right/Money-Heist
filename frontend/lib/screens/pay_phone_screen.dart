@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/wallet_provider.dart';
 
-class PayPhoneScreen extends StatelessWidget {
+class PayPhoneScreen extends StatefulWidget {
   const PayPhoneScreen({super.key});
+
+  @override
+  State<PayPhoneScreen> createState() => _PayPhoneScreenState();
+}
+
+class _PayPhoneScreenState extends State<PayPhoneScreen> {
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController amountController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -45,24 +56,33 @@ class PayPhoneScreen extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                _inputField("Phone Number"),
+                _inputField(controller: phoneController, hint: "Phone Number"),
                 const SizedBox(height: 16),
 
-                _inputField("Amount"),
+                _inputField(controller: amountController, hint: "Amount"),
                 const SizedBox(height: 30),
 
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pushNamed(context, '/home'),
+                    onPressed: _isLoading ? null : _handlePayment,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green.shade700,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
-                    child: const Text(
-                      "Proceed to Pay",
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            "Proceed to Pay",
+                            style: TextStyle(fontSize: 18, color: Colors.white),
+                          ),
                   ),
                 )
               ],
@@ -73,7 +93,52 @@ class PayPhoneScreen extends StatelessWidget {
     );
   }
 
-  Widget _inputField(String hint) {
+  Future<void> _handlePayment() async {
+    if (phoneController.text.isEmpty || amountController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    final amount = double.tryParse(amountController.text);
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+    final success = await walletProvider.processPayment(amount);
+
+    setState(() => _isLoading = false);
+
+    if (success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment successful! ₹${walletProvider.totalInvested.toStringAsFixed(2)} invested.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment failed. Please check your balance.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _inputField({required TextEditingController controller, required String hint}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
@@ -81,6 +146,8 @@ class PayPhoneScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
+        controller: controller,
+        keyboardType: hint == "Amount" ? TextInputType.number : TextInputType.phone,
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hint,

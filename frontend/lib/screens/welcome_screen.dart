@@ -22,7 +22,7 @@ class WelcomeScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -90,7 +90,7 @@ class WelcomeScreen extends StatelessWidget {
                   subtitle: "Bank-level security",
                 ),
 
-                const Spacer(),
+                const SizedBox(height: 40),
 
                 // Get Started Button → Go to SignupScreen
                 SizedBox(

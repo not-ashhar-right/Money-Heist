@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/session_provider.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -12,6 +14,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -107,16 +110,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      String name = nameController.text.trim();
-
-                      // Send name to biometric → then to home
-                      Navigator.pushNamed(
-                        context,
-                        '/biometric',
-                        arguments: name,
-                      );
-                    },
+                    onPressed: _isLoading ? null : _handleSignup,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green.shade600,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -124,13 +118,22 @@ class _SignupScreenState extends State<SignupScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text(
-                      "Create Account",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            "Create Account",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
+                          ),
                   ),
                 ),
 
@@ -161,6 +164,55 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleSignup() async {
+    if (emailController.text.isEmpty ||
+        passwordController.text.isEmpty ||
+        nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all required fields')),
+      );
+      return;
+    }
+
+    if (passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
+    final success = await sessionProvider.signup(
+      emailController.text.trim(),
+      passwordController.text,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (success) {
+      if (mounted) {
+        String name = nameController.text.trim();
+        Navigator.pushNamed(
+          context,
+          '/biometric',
+          arguments: name,
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Signup failed. Please check:\n1. Backend is running\n2. Valid email format\n3. Password at least 6 characters\n4. Check console for details'),
+            duration: Duration(seconds: 4),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _inputField({

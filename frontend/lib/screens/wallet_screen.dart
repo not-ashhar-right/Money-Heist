@@ -1,11 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/wallet_provider.dart';
 
-
-class WalletScreen extends StatelessWidget {
+class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
 
   @override
+  State<WalletScreen> createState() => _WalletScreenState();
+}
+
+class _WalletScreenState extends State<WalletScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<WalletProvider>(context, listen: false).refresh();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final walletProvider = Provider.of<WalletProvider>(context);
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -57,22 +72,22 @@ class WalletScreen extends StatelessWidget {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
+                    children: [
+                      const Text(
                         "Pending Investment",
                         style: TextStyle(color: Colors.white70, fontSize: 16),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Text(
-                        "₹0.00",
-                        style: TextStyle(
+                        "₹${walletProvider.pendingInvestment.toStringAsFixed(2)}",
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 10),
-                      Text(
+                      const SizedBox(height: 10),
+                      const Text(
                         "Amount collected from UPI payments",
                         style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
@@ -117,14 +132,14 @@ class WalletScreen extends StatelessWidget {
                       Expanded(
                         child: _summaryTile(
                           title: "Total Invested",
-                          value: "₹0.00",
+                          value: "₹${walletProvider.totalInvested.toStringAsFixed(2)}",
                         ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: _summaryTile(
                           title: "Total Investments",
-                          value: "0",
+                          value: "${walletProvider.totalInvestments}",
                         ),
                       ),
                     ],
@@ -142,25 +157,58 @@ class WalletScreen extends StatelessWidget {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
+                    children: [
+                      const Text(
                         "Investment History",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(height: 14),
-                      Center(
-                        child: Text(
-                          "No investments yet\nStart making payments to build your portfolio",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      )
+                      const SizedBox(height: 14),
+                      walletProvider.transactions
+                              .where((t) => t.type == 'investment')
+                              .isEmpty
+                          ? const Center(
+                              child: Text(
+                                "No investments yet\nStart making payments to build your portfolio",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            )
+                          : Column(
+                              children: walletProvider.transactions
+                                  .where((t) => t.type == 'investment')
+                                  .take(5)
+                                  .map((transaction) => Padding(
+                                        padding: const EdgeInsets.only(bottom: 8),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text(
+                                              "Investment",
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            Text(
+                                              "₹${transaction.amount.toStringAsFixed(2)}",
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.green.shade700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ))
+                                  .toList(),
+                            )
                     ],
                   ),
                 ),
@@ -174,9 +222,9 @@ class WalletScreen extends StatelessWidget {
                     color: Colors.white.withOpacity(0.95),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
                         "About Your Wallet",
                         style: TextStyle(

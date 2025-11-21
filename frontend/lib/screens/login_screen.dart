@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
-import 'signup_screen.dart'; // ← already added
+import 'package:provider/provider.dart';
+import 'signup_screen.dart';
+import '../providers/session_provider.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +76,7 @@ class LoginScreen extends StatelessWidget {
 
                 // Email Field
                 _inputField(
+                  controller: emailController,
                   hint: "your@email.com",
                   icon: Icons.email_outlined,
                   obscure: false,
@@ -74,6 +86,7 @@ class LoginScreen extends StatelessWidget {
 
                 // Password Field
                 _inputField(
+                  controller: passwordController,
                   hint: "********",
                   icon: Icons.lock_outline,
                   obscure: true,
@@ -95,13 +108,11 @@ class LoginScreen extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // ⭐⭐⭐ Login Button → Go To Biometric ⭐⭐⭐
+                // Login Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/biometric');
-                    },
+                    onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green.shade500,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -109,13 +120,22 @@ class LoginScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text(
-                      "Login",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            "Login",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                            ),
+                          ),
                   ),
                 ),
 
@@ -159,10 +179,47 @@ class LoginScreen extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _handleLogin() async {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
+    final success = await sessionProvider.login(
+      emailController.text.trim(),
+      passwordController.text,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (success) {
+      if (mounted) {
+        Navigator.pushNamed(context, '/biometric');
+      }
+    } else {
+      if (mounted) {
+        final sessionProvider = Provider.of<SessionProvider>(context, listen: false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login failed. Please check:\n1. Backend is running\n2. Correct email/password\n3. Check console for details'),
+            duration: const Duration(seconds: 4),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }
 
 // Input field widget
 Widget _inputField({
+  required TextEditingController controller,
   required String hint,
   required IconData icon,
   required bool obscure,
@@ -174,6 +231,7 @@ Widget _inputField({
       borderRadius: BorderRadius.circular(10),
     ),
     child: TextField(
+      controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         icon: Icon(icon, color: Colors.grey.shade700),

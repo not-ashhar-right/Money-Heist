@@ -1,13 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/session_provider.dart';
+import '../providers/wallet_provider.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<WalletProvider>(context, listen: false).refresh();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // ⭐ RECEIVING USER NAME
-    final String userName =
-        ModalRoute.of(context)!.settings.arguments as String? ?? "User";
+    final sessionProvider = Provider.of<SessionProvider>(context);
+    final walletProvider = Provider.of<WalletProvider>(context);
+    final String userName = sessionProvider.userEmail?.split('@')[0] ?? "User";
 
     return Scaffold(
       backgroundColor: const Color(0xFF001B10),
@@ -70,31 +86,31 @@ class HomeScreen extends StatelessWidget {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       "Total Balance",
                       style: TextStyle(color: Colors.white70, fontSize: 16),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      "₹10,000.00",
-                      style: TextStyle(
+                      "₹${walletProvider.balance.toStringAsFixed(2)}",
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 34,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "Pending Investment\n₹0.00",
-                          style: TextStyle(fontSize: 13, color: Colors.white70),
+                          "Pending Investment\n₹${walletProvider.pendingInvestment.toStringAsFixed(2)}",
+                          style: const TextStyle(fontSize: 13, color: Colors.white70),
                         ),
                         Text(
-                          "Available\n₹10,000.00",
-                          style: TextStyle(fontSize: 13, color: Colors.white70),
+                          "Available\n₹${walletProvider.balance.toStringAsFixed(2)}",
+                          style: const TextStyle(fontSize: 13, color: Colors.white70),
                         ),
                       ],
                     ),

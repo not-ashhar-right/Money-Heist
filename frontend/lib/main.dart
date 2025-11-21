@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
@@ -17,7 +19,17 @@ import 'screens/my_balance_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 
-void main() {
+import 'providers/session_provider.dart';
+import 'providers/wallet_provider.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    // .env file not found, will use default values
+    print("Warning: .env file not found. Using default API URL.");
+  }
   runApp(const MyApp());
 }
 
@@ -38,42 +50,48 @@ class MyApp extends StatelessWidget {
       useMaterial3: true,
     );
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'MoneyHeist',
-      theme: theme,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SessionProvider()),
+        ChangeNotifierProvider(create: (_) => WalletProvider()),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'MoneyHeist',
+        theme: theme,
 
-      // First screen
-      initialRoute: '/',
+        // First screen
+        initialRoute: '/',
 
-      // All routes
-      routes: {
-        '/': (context) => const WelcomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/signup': (context) => const SignupScreen(),
-        '/biometric': (context) => const BiometricScreen(),
-        '/home': (context) => const HomeScreen(),
+        // All routes
+        routes: {
+          '/': (context) => const WelcomeScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/signup': (context) => const SignupScreen(),
+          '/biometric': (context) => const BiometricScreen(),
+          '/home': (context) => const HomeScreen(),
 
-        // UPI Payment Flow
-        '/upi': (context) => const UpiPaymentScreen(),
-        '/scan-qr': (context) => const ScanQrScreen(),
-        '/pay-phone': (context) => const PayPhoneScreen(),
+          // UPI Payment Flow
+          '/upi': (context) => const UpiPaymentScreen(),
+          '/scan-qr': (context) => const ScanQrScreen(),
+          '/pay-phone': (context) => const PayPhoneScreen(),
 
-        // Stocks
-        '/stocks': (context) => const StocksScreen(),
+          // Stocks
+          '/stocks': (context) => const StocksScreen(),
 
-        // Wallet
-        '/wallet': (context) => const WalletScreen(),
+          // Wallet
+          '/wallet': (context) => const WalletScreen(),
 
-        // My Balance
-        '/mybalance': (context) => const MyBalanceScreen(),
+          // My Balance
+          '/mybalance': (context) => const MyBalanceScreen(),
 
-        // Profile
-        '/profile': (context) => const ProfileScreen(),
+          // Profile
+          '/profile': (context) => const ProfileScreen(),
 
-        // Settings
-        '/settings': (context) => const SettingsScreen(),
-      },
+          // Settings
+          '/settings': (context) => const SettingsScreen(),
+        },
+      ),
     );
   }
 }
